@@ -2,6 +2,7 @@
 
 namespace Outl1ne\MultiselectField\Traits;
 
+use Exception;
 use RuntimeException;
 use Laravel\Nova\Nova;
 use Illuminate\Support\Str;
@@ -29,11 +30,18 @@ trait MultiselectBelongsToSupport
         $this->resourceClass = $resourceClass;
 
         $this->resolveUsing(function ($value) use ($async, $resourceClass) {
+            $request = app(NovaRequest::class);
             $keyName = $this->keyName ?? $resourceClass::newModel()->getKeyName();
 
             if ($async) $this->associatableResource($resourceClass);
 
-            $request = app(NovaRequest::class);
+            // Default value
+            if ($request->isCreateOrAttachRequest()) {
+                if ((is_null($value) || $value->isEmpty()) && $defaultValue = $this->resolveDefaultValue($request)) {
+                    $value = $defaultValue->first();
+                }
+            }
+
             $value = $value->{$keyName} ?? null;
             $model = $resourceClass::newModel();
 
@@ -47,9 +55,11 @@ trait MultiselectBelongsToSupport
                 )->limit(1000)->get();
             }
 
+            $models = $models->filter()->values();
+
             $this->setOptionsFromModels($models, $resourceClass);
 
-            $resource = isset($value) ? new $resourceClass($models->first()) : null;
+            $resource = isset($value) && $models->count() > 0 ? new $resourceClass($models->first()) : null;
             $this->withMeta([
                 'belongsToDisplayValue' => $resource ? (string) $resource->title() : null,
                 'belongsToResourceName' => $resource ? $resource::uriKey() : null,
@@ -100,11 +110,17 @@ trait MultiselectBelongsToSupport
         $this->resourceClass = $resourceClass;
 
         $this->resolveUsing(function ($value) use ($async, $resourceClass) {
+            $request = app(NovaRequest::class);
+            $model = $resourceClass::newModel();
+
             if ($async) $this->associatableResource($resourceClass);
 
             $value = $value ?: collect();
-            $request = app(NovaRequest::class);
-            $model = $resourceClass::newModel();
+
+            // Default value
+            if ($request->isCreateOrAttachRequest()) {
+                if (is_null($value) || $value->isEmpty()) $value = $this->resolveDefaultValue($request) ?? $value;
+            }
 
             $models = $async
                 ? $value
@@ -119,11 +135,13 @@ trait MultiselectBelongsToSupport
                 'viewable' => $resource ? $resource->authorizedToView(request()) : false,
             ]);
 
-            return $value->map(fn ($model) => $model->{$this->keyName ?? $model->getKeyName()})->toArray();
+            return $value->map(function ($model) {
+                return $model->{$this->keyName ?? $model->getKeyName()};
+            })->toArray();
         });
 
         $this->fillUsing(function ($request, $model, $requestAttribute, $attribute) {
-            $model::saved(function ($model) use ($attribute, $request) {
+            return function () use ($model, $attribute, $request) {
                 // Validate
                 if (!method_exists($model, $attribute)) {
                     throw new RuntimeException("{$model}::{$attribute} must be a relation method.");
@@ -137,7 +155,7 @@ trait MultiselectBelongsToSupport
 
                 // Sync
                 $relation->sync($request->get($attribute) ?: []);
-            });
+            };
         });
 
         return $this;

@@ -70,6 +70,7 @@ export default {
     computedOptions() {
       // Return empty array if the multiselect has not been opened yet.
       if (!this.isInitialized) return [];
+
       let options = this.options || [];
 
       if (this.isOptionGroups) {
@@ -78,7 +79,7 @@ export default {
           return {
             ...option,
             values: option.values.map(opt => {
-              const isDuplicate = allLabels.filter(l => l === opt.label).length > 1;
+              const isDuplicate = this.mode === 'form' ? false : allLabels.filter(l => l === opt.label).length > 1;
               return { ...opt, label: isDuplicate ? `${opt.label} (${option.label})` : opt.label };
             }),
           };
