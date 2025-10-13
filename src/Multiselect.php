@@ -105,7 +105,7 @@ class Multiselect extends Field implements RelatableField
         return $this->api($apiUrl, $resourceClass, $keyName);
     }
 
-    protected function resolveAttribute($resource, string $attribute): mixed
+    public function resolveAttribute($resource, $attribute)
     {
         $singleSelect = $this->meta['singleSelect'] ?? false;
         $value = data_get($resource, str_replace('->', '.', $attribute));
@@ -156,7 +156,7 @@ class Multiselect extends Field implements RelatableField
         }
     }
 
-    public function resolveDefaultValue(NovaRequest $request): mixed
+    public function resolveDefaultValue(NovaRequest $request)
     {
         if (!$this->resourceClass || !is_null($this->value)) return parent::resolveDefaultValue($request);
 
