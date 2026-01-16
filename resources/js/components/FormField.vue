@@ -7,6 +7,7 @@
           v-if="!reorderMode"
           @input="handleChange"
           @open="handleOpen"
+          @close="handleClose"
           @search-change="tryToFetchOptions"
           track-by="value"
           label="label"
@@ -22,7 +23,7 @@
           :placeholder="currentField.placeholder || currentField.name"
           :close-on-select="currentField.max === 1 || !isMultiselect"
           :multiple="isMultiselect"
-          :max="max || currentField.max || null"
+          :max="isMultiselect ? max || currentField.max || null : null"
           :optionsLimit="currentField.optionsLimit || 1000"
           :limit="currentField.limit"
           :limitText="count => __('novaMultiselect.limitText', { count: String(count || '') })"
@@ -30,6 +31,7 @@
           :loading="isLoading"
           selectGroupLabel=""
           selectedLabel=""
+          tagPlaceholder=""
           deselectLabel=""
           deselectGroupLabel=""
           :clearOnSelect="currentField.clearOnSelect || false"
@@ -63,6 +65,10 @@
           <template #tag="{ option, remove }">
             <form-multiselect-field-tag :option="option" :remove="remove" />
           </template>
+
+          <template #option="{ option, search, index }">
+            <form-multiselect-field-option :option="option" :search="search" :index="index" />
+          </template>
         </multiselect>
 
         <!-- Reorder mode field -->
@@ -78,12 +84,21 @@
           </ul>
         </div>
 
-        <div
-          v-if="currentField.reorderable"
-          class="ml-auto mt-2 text-sm font-bold text-primary cursor-pointer dim"
-          @click="reorderMode = !reorderMode"
-        >
-          {{ __(reorderMode ? 'novaMultiselect.doneReordering' : 'novaMultiselect.reorder') }}
+        <div class="flex gap-4 ml-auto mt-2">
+          <div
+            v-if="currentField.showSelectAll && isMultiselect && !currentField.apiUrl"
+            class="text-sm font-bold text-primary cursor-pointer dim"
+            @click="selectAll"
+          >
+            {{ __('novaMultiselect.selectAll') }}
+          </div>
+          <div
+            v-if="currentField.reorderable && isMultiselect"
+            class="text-sm font-bold text-primary cursor-pointer dim"
+            @click="reorderMode = !reorderMode"
+          >
+            {{ __(reorderMode ? 'novaMultiselect.doneReordering' : 'novaMultiselect.reorder') }}
+          </div>
         </div>
       </div>
     </template>
@@ -102,7 +117,7 @@ export default {
 
   mixins: [HandlesValidationErrors, HandlesFieldValue, DependentFormField],
 
-  props: ['resourceName', 'resourceId', 'field'],
+  props: ['resourceName', 'resourceId', 'field', 'mode'],
 
   data: () => ({
     reorderMode: false,
@@ -112,6 +127,7 @@ export default {
     distinctValues: [],
     isLoading: false,
     isInitialized: false,
+    overflowHiddenParent: null,
   }),
 
   mounted() {
@@ -161,6 +177,9 @@ export default {
           });
           this.max = Math.max(...maxValues) || null;
         }
+
+        // Emit new value so fields down the line also get refreshed
+        Nova.$emit(`multiselect-${this.field.attribute}-input`, this.value);
       });
     }
 
@@ -212,19 +231,24 @@ export default {
       } else {
         this.value = this.getValueFromOptions(this.currentField.value);
       }
+
+      // Emit new value so fields down the line also get refreshed
+      this.currentField.value = !this.value ? '' : this.isMultiselect ? this.value.map(v => v.value) : this.value.value;
     },
 
-    fillIfVisible(formData) {
+    fillIfVisible(formData, attribute) {
+      if (!this.currentlyIsVisible) return;
+
       if (this.isMultiselect) {
         if (this.value && this.value.length) {
           this.value.forEach((v, i) => {
-            formData.append(`${this.field.attribute}[${i}]`, v.value);
+            formData.append(`${attribute}[${i}]`, v.value);
           });
         } else {
-          formData.append(this.field.attribute, '');
+          formData.append(attribute, '');
         }
       } else {
-        formData.append(this.field.attribute, (this.value && this.value.value) || '');
+        formData.append(attribute, (this.value && this.value.value) || '');
       }
     },
 
@@ -251,6 +275,22 @@ export default {
       this.repositionDropdown(true);
       if (!this.isInitialized) this.isInitialized = true;
       if (this.field.distinct) this.distinctOptions();
+
+      if (!this.overflowHiddenParent) {
+        let parent = this.$refs.multiselect.$el.parentElement;
+        let parentWithOverflowHidden = null;
+        while (parent && !parentWithOverflowHidden) {
+          if (parent.classList.contains('overflow-hidden')) parentWithOverflowHidden = parent;
+          parent = parent.parentElement;
+        }
+        this.overflowHiddenParent = parentWithOverflowHidden;
+      }
+
+      if (this.overflowHiddenParent) this.overflowHiddenParent.style.overflow = 'visible';
+    },
+
+    handleClose() {
+      if (this.overflowHiddenParent) this.overflowHiddenParent.style.overflow = null;
     },
 
     /**
@@ -306,16 +346,16 @@ export default {
 
         const fromBottom = (window.innerHeight || document.documentElement.clientHeight) - bottom;
 
-        ms.$refs.list.style.position = 'fixed';
-        ms.$refs.list.style.width = `${el.clientWidth}px`;
+        ms.$refs.list.style.position = 'absolute';
+        ms.$refs.list.style.width = `${el.clientWidth + 1}px`;
 
         if (fromBottom < 300) {
           ms.$refs.list.style.top = 'auto';
-          ms.$refs.list.style.bottom = `${fromBottom + height}px`;
+          ms.$refs.list.style.bottom = `${height}px`;
           ms.$refs.list.style['border-radius'] = '5px 5px 0 0';
         } else {
           ms.$refs.list.style.bottom = 'auto';
-          ms.$refs.list.style.top = `${top + height}px`;
+          ms.$refs.list.style.top = `${height}px`;
           ms.$refs.list.style['border-radius'] = '0 0 5px 5px';
         }
       };
@@ -340,36 +380,43 @@ export default {
     },
 
     fetchOptions: debounce(async function (search) {
-      const resourceId = this.resourceId || '';
-      const { data } = await Nova.request().get(`${this.currentField.apiUrl}`, { params: { search, resourceId } });
+      try {
+        const resourceId = this.resourceId || '';
+        const { data } = await Nova.request().get(`${this.currentField.apiUrl}`, { params: { search, resourceId } });
 
-      // Response is not an array or an object
-      if (typeof data !== 'object') throw new Error('Server response was invalid.');
+        // Response is not an array or an object
+        if (typeof data !== 'object') throw new Error('Server response was invalid.');
 
-      // Is array
-      if (Array.isArray(data)) {
-        this.asyncOptions = data;
-        this.isLoading = false;
-        return;
-      }
-
-      // Nova resource response
-      if (data.resources) {
-        const newOptions = [];
-
-        for (const resource of data.resources) {
-          const label = resource.display || resource.title || '-';
-          const value = resource.value || resource.id.value || null;
-          newOptions.push({ value, label });
+        // Is array
+        if (Array.isArray(data)) {
+          this.asyncOptions = data;
+          this.isLoading = false;
+          return;
         }
 
-        this.asyncOptions = newOptions;
-        this.isLoading = false;
-        return;
-      }
+        // Nova resource response
+        if (data.resources) {
+          const newOptions = [];
 
-      this.asyncOptions = Object.entries(data).map(entry => ({ label: entry[1], value: entry[0] }));
-      this.isLoading = false;
+          for (const resource of data.resources) {
+            const label = resource.display || resource.title || '-';
+            const value = resource.value || resource.id.value || null;
+            newOptions.push({ value, label });
+          }
+
+          this.asyncOptions = newOptions;
+          this.isLoading = false;
+          return;
+        }
+
+        this.asyncOptions = Object.entries(data).map(entry => ({ label: entry[1], value: entry[0] }));
+        this.isLoading = false;
+      } catch (error) {
+        console.error('Error performing search:', error);
+        Nova.error('Error performing search: ' + error?.message || error);
+      } finally {
+        this.isLoading = false;
+      }
     }, 500),
 
     tryToFetchOptions(query) {
@@ -378,11 +425,7 @@ export default {
       if (query.length >= 1) {
         this.asyncOptions = [];
         this.isLoading = true;
-        try {
-          this.fetchOptions(query);
-        } catch (error) {
-          console.error('Error performing search:', error);
-        }
+        this.fetchOptions(query);
       } else {
         this.asyncOptions = [];
       }
@@ -391,6 +434,34 @@ export default {
     onSyncedField() {
       this.options = this.currentField.options || [];
       this.setInitialValue();
+    },
+
+    selectAll() {
+      if (!this.isMultiselect || this.currentField.apiUrl) return;
+
+      let allOptions = [];
+
+      if (this.isOptionGroups) {
+        // Handle option groups - flatten all options from all groups
+        allOptions = this.options.reduce((acc, group) => {
+          return acc.concat(group.values || []);
+        }, []);
+      } else {
+        // Handle regular options
+        allOptions = this.options;
+      }
+
+      // Filter out any options that are disabled due to distinct functionality
+      if (this.field.distinct && this.distinctValues.length > 0) {
+        allOptions = allOptions.filter(option => !this.distinctValues.includes(option.value));
+      }
+
+      // Respect max limit if set
+      if (this.currentField.max && allOptions.length > this.currentField.max) {
+        allOptions = allOptions.slice(0, this.currentField.max);
+      }
+
+      this.handleChange(allOptions);
     },
   },
 };
@@ -530,6 +601,8 @@ $red500: #ef4444;
   .multiselect__spinner {
     background-color: $white;
     color: $slate600;
+    height: 34px;
+    border-radius: 4px;
 
     .dark & {
       background-color: $slate900;
@@ -599,7 +672,7 @@ $red500: #ef4444;
           }
         }
 
-        &.multiselect__option--group  {
+        &.multiselect__option--group {
           color: rgba(var(--colors-primary-500));
           background-color: $white;
 

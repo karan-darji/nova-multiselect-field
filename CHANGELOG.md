@@ -5,6 +5,147 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.1] - 28-08-2025
+
+### Changed
+
+- Added "Select All" functionality (->showSelectAll())
+- Updated packages
+
+## [5.0.1] - 18-12-2024
+
+### Changed
+
+- Allow Laravel Framework 11 during development (thanks to [@crynobone](https://github.com/crynobone))
+- Fixed reorder button showing with singleSelect() (thanks to [@crynobone](https://github.com/crynobone))
+- Removed dependencies covered by laravel/nova-devtool (thanks to [@crynobone](https://github.com/crynobone))
+
+## [5.0.0] - 17-12-2024
+
+### Added
+
+- Nova 5 support (thanks to [@bashgeek](https://github.com/bashgeek))
+
+### Changed
+
+- Updated packages
+
+## [4.6.0] - 09-10-2024
+
+### Added
+
+- Added option to override the form field component (thanks to [@alexandru-eftimie](https://github.com/alexandru-eftimie))
+
+### Changed
+
+- Bumped Nova requirement to 4.32
+- Fixed issue with overflow hidden parent
+- Fixed issue where focusing the input would block out the whole viewport
+- Fixed error handling with async modals
+- Fixed misc style issues related to newer Nova versions
+- Update packages
+
+## [4.5.6] - 29-02-2024
+
+### Changed
+
+- Fixed issue with selected values not being shown in some cases
+
+## [4.5.5] - 27-02-2024
+
+### Changed
+
+- Fixed issue with (soft-)deleted models throwing an exception when rendering field
+
+## [4.5.1] - 27-02-2024
+
+### Changed
+
+- Fixed issue with really long fields with a lot of values not allowing removing items using X
+
+## [4.5.0] - 17-10-2023
+
+### Added
+
+- Added Nova Devtool (immensely improves first set-up developer experience) (huge thanks to [@crynobone](https://github.com/crynobone))
+
+### Changed
+
+- Fixed UI issues relating to multiselect fields inside action modals
+
+## [4.4.2] - 25-08-2023
+
+### Changed
+
+- Fixed a bug with fillIfVisible (thanks to [@LorenzoAlu](https://github.com/LorenzoAlu) and [@muhammadsaeedparacha](https://github.com/muhammadsaeedparacha))
+
+## [4.4.1] - 10-08-2023
+
+### Changed
+
+- Fixed crash with empty belongsToMany
+
+## [4.4.0] - 10-08-2023
+
+### Changed
+
+- Bumped minimum Nova version to 4.27 due to inner method visibility change inside Nova
+- Fixed resolveDefaultValue visibility
+- Fixed a bug when using show() and hide() inside dependsOn (thanks to [@LorenzoAlu](https://github.com/LorenzoAlu))
+- Fixed fillIfVisible running even when the field was not visible (thanks to [@puzzledmonkey](https://github.com/puzzledmonkey))
+
+## [4.3.6] - 24-07-2023
+
+### Changed
+
+- Improved .gitattributes to reduce vendor size
+
+## [4.3.5] - 30-06-2023
+
+### Changed
+
+- Fixed issue with Laravel Octane observer leaks
+- Fixed issue with some null default values
+
+## [4.3.4] - 13-06-2023
+
+### Changed
+
+- Fixed Nova 4.25 support (UndefinedValue class as new default value)
+
+## [4.3.3] - 31-05-2023
+
+### Changed
+
+- Fixed dependsOn changes not propagating further than one layer down
+
+## [4.3.2] - 30-05-2023
+
+### Changed
+
+- Fixed unintended crash with null defaultValue
+
+## [4.3.1] - 30-05-2023
+
+### Changed
+
+- Fixed unnecessary group labels on form view
+
+## [4.3.0] - 29-05-2023
+
+### Added
+
+- Added BelongsToMany default() support
+  - Default value should be a model or an array/collection of models
+- Added Slovak language (thanks to [@wamesro](https://github.com/wamesro))
+
+### Changed
+
+- Fixed dependsOnOptions changes not propagating further than one layer down
+- Fixed PHP arrow fn usage (thanks to [@Alvaro-Vidal-Azevedo-Pinheiro](https://github.com/Alvaro-Vidal-Azevedo-Pinheiro))
+- Fixed attribute usage when filling field (thanks to [@lonnylot](https://github.com/lonnylot))
+- Updated packages
+
 ## [4.2.3] - 23-11-2022
 
 ### Changed

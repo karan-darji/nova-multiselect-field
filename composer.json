@@ -10,21 +10,25 @@
   "authors": [
     {
       "name": "Tarvo Reinpalu",
-      "email": "tarvoreinpalu@gmail.com",
+      "email": "tarvo@outl1ne.com",
       "role": "Developer"
     },
     {
-      "name": "Optimist Digital",
-      "email": "info@optimistdigital.com",
+      "name": "Outl1ne",
+      "email": "info@outl1ne.com",
       "role": "Maintainer"
     }
   ],
   "license": "MIT",
   "require": {
-    "php": ">=7.3",
-    "laravel/nova": "^4.0",
-    "nova-kit/nova-packages-tool": "^1.0.1",
-    "outl1ne/nova-translations-loader": "dev-master"
+    "php": ">=8.0",
+    "laravel/nova": "^4.0|^5.0",
+    "outl1ne/nova-translations-loader": "dev-feature/php-8plus-laravel-8plus-nova-4plus"
+  },
+  "require-dev": {
+    "laravel/nova-devtool": "^1.0",
+    "nunomaduro/collision": "^7.8",
+    "orchestra/testbench": "^8.30|^9.8"
   },
   "autoload": {
     "psr-4": {
@@ -55,7 +59,30 @@
     },
     {
       "type": "vcs",
-      "url": "https://github.com/parth-ka-patel/nova-translations-loader"
+      "url": "https://github.com/karan-darji/nova-translations-loader"
     }
-  ]
+  ],
+  "autoload-dev": {
+    "psr-4": {
+      "Outl1ne\\MultiselectField\\Tests\\": "tests/",
+      "Workbench\\App\\": "workbench/app/",
+      "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+      "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "@clear",
+      "@prepare"
+    ],
+    "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+    "prepare": "@php vendor/bin/testbench package:discover --ansi",
+    "build": "@php vendor/bin/testbench workbench:build --ansi",
+    "serve": [
+      "Composer\\Config::disableProcessTimeout",
+      "@build",
+      "@php vendor/bin/testbench serve --ansi"
+    ],
+    "test": "@php vendor/bin/testbench package:test"
+  }
 }
