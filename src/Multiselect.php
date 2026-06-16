@@ -96,7 +96,7 @@ class Multiselect extends Field implements RelatableField
         return $this->api($apiUrl, $resourceClass, $keyName);
     }
 
-    protected function resolveAttribute($resource, $attribute)
+    protected function resolveAttribute($resource, string $attribute): mixed
     {
         $singleSelect = $this->meta['singleSelect'] ?? false;
         $value = data_get($resource, str_replace('->', '.', $attribute));
