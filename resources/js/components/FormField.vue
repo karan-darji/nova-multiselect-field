@@ -177,7 +177,7 @@ export default {
     });
   },
 
-  destroyed() {
+  unmounted() {
     window.removeEventListener('scroll', this.repositionDropdown);
     if (this.field.distinct) Nova.$off(`multiselect-${this.field.distinct}-distinct`);
   },
